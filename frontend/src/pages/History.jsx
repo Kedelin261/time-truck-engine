@@ -22,8 +22,12 @@ export default function History({ userId }) {
   const avgDpm = bookings.length ? bookings.reduce((s, b) => s + b.dollarsPerMile, 0) / bookings.length : 0
   const avgMiles = profile?.avgMiles || 0
 
-  const topLane = profile?.laneCounts
-    ? Object.entries(profile.laneCounts).sort((a, b) => b[1] - a[1])[0]
+  const laneCounts = (profile && profile.laneCounts && typeof profile.laneCounts === 'object')
+    ? profile.laneCounts
+    : {}
+  const laneEntries = Object.entries(laneCounts)
+  const topLane = laneEntries.length > 0
+    ? laneEntries.sort((a, b) => b[1] - a[1])[0]
     : null
 
   return (
@@ -67,14 +71,14 @@ export default function History({ userId }) {
       </div>
 
       {/* Lane intelligence */}
-      {profile && profile.laneCounts && Object.keys(profile.laneCounts).length > 0 && (
+      {laneEntries.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-title">🧠 Lane Intelligence</div>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 16 }}>
             The engine uses your booking history to boost scores for loads on lanes you run most. Here's what it's learned:
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            {Object.entries(profile.laneCounts)
+            {laneEntries
               .sort((a, b) => b[1] - a[1])
               .map(([lane, count]) => (
                 <div key={lane} style={{

@@ -11,11 +11,14 @@ export default function Notifications({ userId }) {
 
   useEffect(() => {
     api.getPrefs(userId).then(p => {
-      setPrefs(p)
-      setPhone(p.phoneNumber || '')
-      setEmail(p.email || '')
-      setTier(p.subscriptionTier || 'PRO')
-    }).catch(() => {})
+      const prefs = p || {}
+      setPrefs(prefs)
+      setPhone(prefs.phoneNumber || '')
+      setEmail(prefs.email || '')
+      setTier(prefs.subscriptionTier || 'PRO')
+    }).catch(() => {
+      setPrefs({})
+    })
   }, [userId])
 
   const flash = (text, type = 'success') => {

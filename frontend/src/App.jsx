@@ -1,37 +1,42 @@
 import React, { useState } from 'react'
-import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
-import Dashboard from './pages/Dashboard'
-import Loads from './pages/Loads'
-import Trucks from './pages/Trucks'
-import Brokers from './pages/Brokers'
-import Preferences from './pages/Preferences'
+import {
+  BrowserRouter, Routes, Route, NavLink, Navigate,
+} from 'react-router-dom'
+import Dashboard     from './pages/Dashboard'
+import Loads         from './pages/Loads'
+import Trucks        from './pages/Trucks'
+import Brokers       from './pages/Brokers'
+import Preferences   from './pages/Preferences'
 import Notifications from './pages/Notifications'
-import History from './pages/History'
+import History       from './pages/History'
 import './App.css'
 
 const NAV = [
-  { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { to: '/loads',     icon: '🚛', label: 'Top Loads' },
-  { to: '/trucks',    icon: '🚚', label: 'My Trucks' },
-  { to: '/brokers',   icon: '📋', label: 'Brokers' },
-  { to: '/notifications', icon: '🔔', label: 'Notifications' },
-  { to: '/history',   icon: '📈', label: 'History' },
-  { to: '/preferences', icon: '⚙️', label: 'Settings' },
+  { to: '/dashboard',    icon: '📊', label: 'Dashboard'    },
+  { to: '/loads',        icon: '🚛', label: 'Top Loads'    },
+  { to: '/trucks',       icon: '🚚', label: 'My Trucks'    },
+  { to: '/brokers',      icon: '📋', label: 'Brokers'      },
+  { to: '/notifications',icon: '🔔', label: 'Notifications'},
+  { to: '/history',      icon: '📈', label: 'History'      },
+  { to: '/preferences',  icon: '⚙️', label: 'Settings'    },
 ]
 
 export default function App() {
-  const [userId, setUserId] = useState(() => localStorage.getItem('tt_userId') || 'demo')
+  const [userId, setUserId] = useState(
+    () => (typeof localStorage !== 'undefined' && localStorage.getItem('tt_userId')) || 'demo'
+  )
   const [userInput, setUserInput] = useState(userId)
 
   const applyUser = () => {
     const id = userInput.trim() || 'demo'
     setUserId(id)
-    localStorage.setItem('tt_userId', id)
+    try { localStorage.setItem('tt_userId', id) } catch {}
   }
 
   return (
     <BrowserRouter>
       <div className="app-shell">
+        {/* ── Sidebar always visible ───────────────────────── */}
         <aside className="sidebar">
           <div className="sidebar-brand">
             <span className="brand-icon">🚛</span>
@@ -73,9 +78,10 @@ export default function App() {
           </div>
         </aside>
 
+        {/* ── Main content ────────────────────────────────── */}
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/"              element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard"     element={<Dashboard     userId={userId} />} />
             <Route path="/loads"         element={<Loads         userId={userId} />} />
             <Route path="/trucks"        element={<Trucks        userId={userId} />} />
@@ -83,6 +89,8 @@ export default function App() {
             <Route path="/notifications" element={<Notifications userId={userId} />} />
             <Route path="/history"       element={<History       userId={userId} />} />
             <Route path="/preferences"   element={<Preferences   userId={userId} />} />
+            {/* catch-all → dashboard */}
+            <Route path="*"              element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
       </div>

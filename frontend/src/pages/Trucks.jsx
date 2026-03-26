@@ -16,7 +16,9 @@ export default function Trucks({ userId }) {
 
   useEffect(() => {
     setLoading(true)
-    api.getTrucks(userId).then(t => { setTrucks(t); setLoading(false) }).catch(() => setLoading(false))
+    api.getTrucks(userId)
+      .then(t => { setTrucks(Array.isArray(t) ? t : []); setLoading(false) })
+      .catch(() => { setTrucks([]); setLoading(false) })
   }, [userId])
 
   const openAdd = () => { setForm(EMPTY_TRUCK); setEditing(null); setShowModal(true) }

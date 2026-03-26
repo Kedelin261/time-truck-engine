@@ -1,26 +1,26 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+export default defineConfig({
+  plugins: [react()],
 
-  return {
-    plugins: [react()],
-    define: {
-      // Expose VITE_API_BASE to the app (set in Cloudflare Pages env vars)
-      __API_BASE__: JSON.stringify(env.VITE_API_BASE || '')
+  // Remove custom define — use import.meta.env.VITE_API_BASE natively (Vite auto-exposes VITE_* vars)
+  define: {
+    // Keep __API_BASE__ as fallback for any code that still references it
+    __API_BASE__: JSON.stringify(process.env.VITE_API_BASE || ''),
+  },
+
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
-    server: {
-      proxy: {
-        '/api': {
-          target: 'http://localhost:8080',
-          changeOrigin: true
-        }
-      }
-    },
-    build: {
-      outDir: 'dist',
-      emptyOutDir: true
-    }
-  }
+  },
+
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
 })

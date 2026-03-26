@@ -17,7 +17,9 @@ export default function Brokers({ userId }) {
 
   useEffect(() => {
     setLoading(true)
-    api.getBrokers(userId).then(b => { setBrokers(b); setLoading(false) }).catch(() => setLoading(false))
+    api.getBrokers(userId)
+      .then(b => { setBrokers(Array.isArray(b) ? b : []); setLoading(false) })
+      .catch(() => { setBrokers([]); setLoading(false) })
   }, [userId])
 
   const flash = (text, type = 'success') => {
@@ -68,9 +70,19 @@ export default function Brokers({ userId }) {
 
   const blast = async () => {
     setBlasting(true)
-    const results = await api.blastAvailability(userId)
-    const ok = results.filter(r => r.success).length
-    flash(`✅ Availability blast sent to ${ok}/${results.length} brokers`, 'success')
+    try {
+      const results = await api.blastAvailability(userId)
+      const arr = Array.isArray(results) ? results : []
+      const ok = arr.filter(r => r && r.success).length
+      flash(
+        arr.length === 0
+          ? '⚠️ No brokers to blast — add brokers first'
+          : `✅ Availability blast sent to ${ok}/${arr.length} brokers`,
+        'success'
+      )
+    } catch (e) {
+      flash('❌ Error: ' + e.message, 'error')
+    }
     setBlasting(false)
   }
 

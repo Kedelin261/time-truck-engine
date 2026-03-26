@@ -24,7 +24,7 @@ export default function Loads({ userId }) {
     setLoading(false)
   }
 
-  useEffect(() => { fetch20() }, [userId])
+  useEffect(() => { fetch20() }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const startAuto = () => {
     fetch20()
@@ -53,14 +53,14 @@ export default function Loads({ userId }) {
     setTimeout(() => setBookingMsg(''), 4000)
   }
 
-  const filtered = loads.filter(l => {
+  const filtered = Array.isArray(loads) ? loads.filter(l => {
     if (!filter) return true
     const q = filter.toLowerCase()
-    return l.originState?.toLowerCase().includes(q) ||
-           l.destinationState?.toLowerCase().includes(q) ||
-           l.loadId?.toLowerCase().includes(q) ||
-           l.brokerCompany?.toLowerCase().includes(q)
-  })
+    return (l.originState || '').toLowerCase().includes(q) ||
+           (l.destinationState || '').toLowerCase().includes(q) ||
+           (l.loadId || '').toLowerCase().includes(q) ||
+           (l.brokerCompany || '').toLowerCase().includes(q)
+  }) : []
 
   return (
     <div>
