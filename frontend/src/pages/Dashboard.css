@@ -1,0 +1,4 @@
+.btn-active {
+  border-color: var(--green) !important;
+  color: var(--green) !important;
+}

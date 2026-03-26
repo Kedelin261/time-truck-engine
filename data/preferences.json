@@ -1,9 +1,46 @@
 {
   "demo" : {
     "homeState" : "DE",
+    "homeCity" : "",
+    "equipmentType" : "DRY_VAN",
+    "maxDeadheadMiles" : 50,
+    "minTotalMiles" : 250,
+    "minDollarsPerMile" : 2.0,
+    "preferredDestinationStates" : [ ],
+    "bannedDestinationStates" : [ ],
+    "phoneNumber" : "",
+    "email" : "",
+    "smsEnabled" : false,
+    "emailEnabled" : false,
+    "companyName" : "",
+    "ownerName" : "",
+    "mcNumber" : "",
+    "dotNumber" : "",
+    "companyPhone" : "",
+    "companyEmail" : "",
+    "companyWebsite" : "",
+    "subscriptionTier" : "FREE"
+  },
+  "ken1" : {
+    "homeState" : "DE",
+    "homeCity" : "",
     "equipmentType" : "BOX_TRUCK_26",
     "maxDeadheadMiles" : 50,
     "minTotalMiles" : 250,
-    "minDollarsPerMile" : 2.0
+    "minDollarsPerMile" : 2.0,
+    "preferredDestinationStates" : [ ],
+    "bannedDestinationStates" : [ ],
+    "phoneNumber" : "",
+    "email" : "",
+    "smsEnabled" : false,
+    "emailEnabled" : false,
+    "companyName" : "",
+    "ownerName" : "",
+    "mcNumber" : "",
+    "dotNumber" : "",
+    "companyPhone" : "",
+    "companyEmail" : "",
+    "companyWebsite" : "",
+    "subscriptionTier" : "FREE"
   }
 }

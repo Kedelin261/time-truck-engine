@@ -1,0 +1,5 @@
+name = "trucking-time"
+compatibility_date = "2024-01-01"
+
+[env.production]
+# Cloudflare Pages automatically handles routing via _redirects
