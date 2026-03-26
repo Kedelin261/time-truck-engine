@@ -63,60 +63,138 @@ function parseRoute(pathname) {
   return { userId, resource, subId, action }
 }
 
-// ── Stub load data (replaces DAT until real API key provided) ───────────────
+// ── Stub load data — full DAT One field set ─────────────────────────────────
 function generateStubLoads(userId, prefs) {
   const homeState = prefs?.home_state || 'DE'
-  const equip = prefs?.equipment_type || 'DRY_VAN'
+  const equip     = prefs?.equipment_type || 'DRY_VAN'
 
+  // Each route: orig/dest, miles, rate, deadhead, plus rich detail overrides
   const routes = [
-    { orig: homeState, origCity: 'Wilmington', dest: 'FL', destCity: 'Miami',       miles: 1150, rate: 3840, dh: 0  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'PA', destCity: 'Philadelphia', miles: 45,  rate: 280,  dh: 0  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'NY', destCity: 'New York',     miles: 120, rate: 480,  dh: 5  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'GA', destCity: 'Atlanta',      miles: 780, rate: 2496, dh: 10 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'TN', destCity: 'Nashville',    miles: 820, rate: 2624, dh: 15 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'TX', destCity: 'Dallas',       miles: 1480,rate: 5180, dh: 20 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'OH', destCity: 'Columbus',     miles: 360, rate: 1008, dh: 8  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'NC', destCity: 'Charlotte',    miles: 490, rate: 1470, dh: 5  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'VA', destCity: 'Richmond',     miles: 200, rate: 640,  dh: 0  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'MA', destCity: 'Boston',       miles: 330, rate: 1056, dh: 12 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'IN', destCity: 'Indianapolis', miles: 680, rate: 2176, dh: 18 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'IL', destCity: 'Chicago',      miles: 790, rate: 2528, dh: 22 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'MI', destCity: 'Detroit',      miles: 520, rate: 1560, dh: 10 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'MO', destCity: 'St. Louis',    miles: 900, rate: 2880, dh: 25 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'SC', destCity: 'Columbia',     miles: 540, rate: 1620, dh: 8  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'NJ', destCity: 'Newark',       miles: 95,  rate: 380,  dh: 0  },
-    { orig: homeState, origCity: 'Wilmington', dest: 'CT', destCity: 'Hartford',     miles: 280, rate: 896,  dh: 14 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'KY', destCity: 'Louisville',   miles: 700, rate: 2100, dh: 20 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'AL', destCity: 'Birmingham',   miles: 860, rate: 2752, dh: 12 },
-    { orig: homeState, origCity: 'Wilmington', dest: 'MS', destCity: 'Jackson',      miles: 1020,rate: 3264, dh: 15 },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'FL', destCity:'Miami',          destZip:'33101', miles:1150, rate:3840,  dh:0,  loadType:'Full',    commodity:'Electronics',      lengthFt:48, weightLbs:24000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'PA', destCity:'Philadelphia',   destZip:'19103', miles:45,   rate:280,   dh:0,  loadType:'Partial', commodity:'Auto Parts',       lengthFt:20, weightLbs:8500,  tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'NY', destCity:'New York',       destZip:'10001', miles:120,  rate:480,   dh:5,  loadType:'Full',    commodity:'Packaged Goods',   lengthFt:53, weightLbs:38000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'GA', destCity:'Atlanta',        destZip:'30301', miles:780,  rate:2496,  dh:10, loadType:'Full',    commodity:'Food Grade',       lengthFt:53, weightLbs:42000, tempMin:34,   tempMax:38   },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'TN', destCity:'Nashville',      destZip:'37201', miles:820,  rate:2624,  dh:15, loadType:'Full',    commodity:'Building Materials',lengthFt:48,weightLbs:45000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'TX', destCity:'Dallas',         destZip:'75201', miles:1480, rate:5180,  dh:20, loadType:'Full',    commodity:'Industrial Equip', lengthFt:53, weightLbs:47500, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'OH', destCity:'Columbus',       destZip:'43215', miles:360,  rate:1008,  dh:8,  loadType:'Full',    commodity:'Retail Goods',     lengthFt:48, weightLbs:35000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'NC', destCity:'Charlotte',      destZip:'28201', miles:490,  rate:1470,  dh:5,  loadType:'Full',    commodity:'Appliances',       lengthFt:53, weightLbs:40000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'VA', destCity:'Richmond',       destZip:'23219', miles:200,  rate:640,   dh:0,  loadType:'Partial', commodity:'Paper Products',   lengthFt:28, weightLbs:18000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'MA', destCity:'Boston',         destZip:'02101', miles:330,  rate:1056,  dh:12, loadType:'Full',    commodity:'Medical Supplies',  lengthFt:48,weightLbs:22000, tempMin:36,   tempMax:46   },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'IN', destCity:'Indianapolis',   destZip:'46201', miles:680,  rate:2176,  dh:18, loadType:'Full',    commodity:'Auto Parts',       lengthFt:53, weightLbs:44000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'IL', destCity:'Chicago',        destZip:'60601', miles:790,  rate:2528,  dh:22, loadType:'Full',    commodity:'Packaged Foods',   lengthFt:53, weightLbs:43500, tempMin:32,   tempMax:40   },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'MI', destCity:'Detroit',        destZip:'48201', miles:520,  rate:1560,  dh:10, loadType:'Partial', commodity:'Machinery Parts',  lengthFt:36, weightLbs:28000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'MO', destCity:'St. Louis',      destZip:'63101', miles:900,  rate:2880,  dh:25, loadType:'Full',    commodity:'Consumer Goods',   lengthFt:53, weightLbs:41000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'SC', destCity:'Columbia',       destZip:'29201', miles:540,  rate:1620,  dh:8,  loadType:'Full',    commodity:'Lumber',           lengthFt:48, weightLbs:46000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'NJ', destCity:'Newark',         destZip:'07101', miles:95,   rate:380,   dh:0,  loadType:'Partial', commodity:'Pharmaceuticals',  lengthFt:24, weightLbs:12000, tempMin:36,   tempMax:46   },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'CT', destCity:'Hartford',       destZip:'06101', miles:280,  rate:896,   dh:14, loadType:'Full',    commodity:'Retail Goods',     lengthFt:48, weightLbs:34000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'KY', destCity:'Louisville',     destZip:'40201', miles:700,  rate:2100,  dh:20, loadType:'Full',    commodity:'Automotive',       lengthFt:53, weightLbs:45000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'AL', destCity:'Birmingham',     destZip:'35201', miles:860,  rate:2752,  dh:12, loadType:'Full',    commodity:'Steel Coils',      lengthFt:48, weightLbs:47000, tempMin:null, tempMax:null },
+    { orig: homeState, origCity:'Wilmington', origZip:'19801', dest:'MS', destCity:'Jackson',        destZip:'39201', miles:1020, rate:3264,  dh:15, loadType:'Full',    commodity:'Food Grade',       lengthFt:53, weightLbs:43000, tempMin:34,   tempMax:38   },
   ]
 
   const brokerNames  = ['Rachel Adams','Kevin Hall','Beverly Clark','James Wilson','Maria Garcia','Tom Baker','Lisa Chen','David Park','Sandra Lee','Chris Martin']
   const brokerCos    = ['Florida Freight Exchange','Southern Lanes LLC','Indy Freight Solutions','Atlas Dispatch','Northeast Carriers','Midwest Loads Inc','Coastal Freight','Premier Logistics','FastLane LLC','TruckTime Brokers']
-  const equipTypes   = ['DRY_VAN','REEFER','FLATBED','BOX_TRUCK_26']
+  const brokerMCs    = ['MC-294871','MC-501234','MC-187654','MC-398012','MC-612345','MC-445521','MC-772390','MC-123987','MC-556234','MC-890123']
+
+  // Equipment sets — multiple allowed types (like real DAT loads)
+  const equipSets = [
+    { primary:'DRY_VAN',    allowed:['DRY_VAN','REEFER'],              size:'53\' Van' },
+    { primary:'REEFER',     allowed:['REEFER'],                         size:'53\' Reefer' },
+    { primary:'FLATBED',    allowed:['FLATBED','STEP_DECK'],            size:'48\' Flatbed' },
+    { primary:'BOX_TRUCK_26',allowed:['BOX_TRUCK_26'],                  size:'26\' Box' },
+    { primary:'DRY_VAN',    allowed:['DRY_VAN'],                        size:'48\' Van' },
+    { primary:'STEP_DECK',  allowed:['STEP_DECK','FLATBED','LOWBOY'],   size:'48\' Step Deck' },
+    { primary:'REEFER',     allowed:['REEFER','DRY_VAN'],               size:'53\' Reefer/Van' },
+  ]
+
+  const loadingTypes  = ['Live Load','Drop Hook','Drop & Pick','Preloaded']
+  const unloadTypes   = ['Live Unload','Drop Only','Drop & Pick']
+  const comments = [
+    'Hazmat — driver must have HAZMAT endorsement. No early pickups.',
+    'Team drivers preferred. No touch freight. Lumper available.',
+    'Drop hook available. Must call ahead 2 hours before pickup.',
+    'Live load only. Dock hours 06:00–18:00 Mon–Fri.',
+    'Oversize permit required. Escort not needed under 14ft wide.',
+    'Food grade trailer required. Trailer must be clean and inspected.',
+    'No slip seat. Solo driver required. Heavy load — verify scales.',
+    'High value load — bond required. Security camera trailer preferred.',
+    null, null, // some loads have no comments
+  ]
 
   return routes.map((r, i) => {
-    const dpm = r.rate / r.miles
+    const dpm        = r.rate / r.miles
+    const eqSet      = equipSets[i % equipSets.length]
     const pickupDate = new Date(Date.now() + (i % 3) * 86400000).toLocaleDateString('en-US', { month:'2-digit', day:'2-digit', year:'numeric' })
     const delivDate  = new Date(Date.now() + ((i % 3) + 1) * 86400000).toLocaleDateString('en-US', { month:'2-digit', day:'2-digit', year:'numeric' })
+    const pickupTime = ['06:00','07:00','08:00','10:00','12:00','14:00'][i % 6]
+    const delivTime  = ['12:00','14:00','16:00','18:00','20:00','22:00'][i % 6]
+    // Spot vs contract rate
+    const contractRate = r.rate * (0.92 + (i % 5) * 0.02)
+
     return {
+      // ── Core identity ──────────────────────────────────────
       loadId:           `DAT-${1000 + i + 1}`,
+      referenceId:      `REF-${String(88000 + i * 137).padStart(6,'0')}`,
+
+      // ── Origin ─────────────────────────────────────────────
       originState:      r.orig,
       originCity:       r.origCity,
+      originZip:        r.origZip,
+      originAddress:    `${100 + i * 7} Industrial Blvd`,
+      pickupDate,
+      pickupTime,
+      pickupType:       loadingTypes[i % loadingTypes.length],
+
+      // ── Destination ────────────────────────────────────────
       destinationState: r.dest,
       destinationCity:  r.destCity,
+      destinationZip:   r.destZip,
+      destinationAddress:`${200 + i * 11} Commerce Dr`,
+      deliveryDate:     delivDate,
+      deliveryTime:     delivTime,
+      unloadType:       unloadTypes[i % unloadTypes.length],
+
+      // ── Distance & financials ──────────────────────────────
       deadheadMiles:    r.dh,
       totalMiles:       r.miles,
       rate:             r.rate,
       dollarsPerMile:   Math.round(dpm * 100) / 100,
-      equipmentType:    i % 5 === 0 ? 'REEFER' : i % 7 === 0 ? 'FLATBED' : equip,
-      pickupDate,
-      deliveryDate:     delivDate,
-      weightLbs:        Math.floor(Math.random() * 30000) + 15000,
+      spotRate:         r.rate,
+      contractRate:     Math.round(contractRate),
+      fuelSurcharge:    Math.round(r.miles * 0.18),
+      allInRate:        r.rate + Math.round(r.miles * 0.18),
+
+      // ── Equipment ──────────────────────────────────────────
+      equipmentType:    i % 5 === 0 ? 'REEFER' : i % 7 === 0 ? 'FLATBED' : (i % 11 === 0 ? 'BOX_TRUCK_26' : equip),
+      equipmentAllowed: i % 5 === 0 ? ['REEFER'] : i % 7 === 0 ? ['FLATBED','STEP_DECK'] : i % 11 === 0 ? ['BOX_TRUCK_26'] : [equip,'REEFER'].slice(0, 1 + (i % 2)),
+      equipmentSize:    eqSet.size,
+      loadType:         r.loadType,   // Full / Partial
+      lengthFt:         r.lengthFt,
+      weightLbs:        r.weightLbs,
+      commodity:        r.commodity,
+      tempMin:          r.tempMin,
+      tempMax:          r.tempMax,
+      hazmat:           i % 13 === 0,
+      teamRequired:     i % 9 === 0,
+      tarpRequired:     i % 7 === 0,
+
+      // ── Load/unload details ────────────────────────────────
+      stops:            i % 4 === 0 ? 2 : 1,
+      dockHours:        `${['06','07','08'][i%3]}:00 – ${['16','18','20'][i%3]}:00`,
+      lumperAvailable:  i % 3 === 0,
+      dropHook:         pickupDate.includes(loadingTypes[i % loadingTypes.length]) ? false : i % 4 === 0,
+
+      // ── Comments ───────────────────────────────────────────
+      comments:         comments[i % comments.length],
+
+      // ── Broker / carrier info ──────────────────────────────
       brokerName:       brokerNames[i % brokerNames.length],
       brokerCompany:    brokerCos[i % brokerCos.length],
+      brokerMC:         brokerMCs[i % brokerMCs.length],
       brokerPhone:      `+1-302-555-${String(1000 + i).padStart(4,'0')}`,
       brokerEmail:      `broker${i+1}@truckingbroker.com`,
+      brokerCsaScore:   Math.floor(70 + (i * 7) % 30),  // 70–99
+      postedAge:        `${(i % 4) + 1}h ago`,
     }
   })
 }
