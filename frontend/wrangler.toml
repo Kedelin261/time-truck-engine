@@ -1,5 +1,11 @@
+# Cloudflare Pages — Trucking.Time
+# Project: trucking-time
+# Account: b7d0c7ba6b4de011cc51c878e26c70c2
+# Live URL: https://trucking-time.pages.dev
+
 name = "trucking-time"
+pages_build_output_dir = "dist"
 compatibility_date = "2024-01-01"
 
 [env.production]
-# Cloudflare Pages automatically handles routing via _redirects
+# VITE_API_BASE = "https://your-backend-server.com"  ← set in Cloudflare Pages dashboard
