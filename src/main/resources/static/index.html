@@ -1,96 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Trucking.Time</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background: #f3f3f3; text-align: left; }
-        .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        input, button { padding: 8px; }
-        button { cursor: pointer; }
-        .muted { color: #777; }
-    </style>
-</head>
-<body>
-<h1>Trucking.Time</h1>
-<p class="muted">Live Top 20 loads from your backend.</p>
-
-<div class="row">
-    <label>UserId:</label>
-    <input id="userId" value="demo" />
-    <button onclick="loadTop20()">Load Top 20</button>
-    <button onclick="startAutoRefresh()">Auto Refresh (10s)</button>
-    <button onclick="stopAutoRefresh()">Stop</button>
-    <span id="status" class="muted"></span>
-</div>
-
-<table>
-    <thead>
-    <tr>
-        <th>Load ID</th>
-        <th>Origin</th>
-        <th>Destination</th>
-        <th>Deadhead</th>
-        <th>Total Miles</th>
-        <th>Rate</th>
-        <th>$ / Mile</th>
-    </tr>
-    </thead>
-    <tbody id="rows"></tbody>
-</table>
-
-<script>
-    let timer = null;
-
-    function fmt(n) {
-        if (n === null || n === undefined) return "";
-        return Number(n).toLocaleString();
-    }
-
-    async function loadTop20() {
-        const userId = document.getElementById("userId").value.trim();
-        const status = document.getElementById("status");
-        status.textContent = "Loading...";
-
-        try {
-            const res = await fetch(`http://localhost:8080/api/users/${userId}/top20`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const loads = await res.json();
-
-            const rows = document.getElementById("rows");
-            rows.innerHTML = loads.map(l => `
-          <tr>
-            <td>${l.loadId ?? ""}</td>
-            <td>${l.originState ?? ""}</td>
-            <td>${l.destinationState ?? ""}</td>
-            <td>${fmt(l.deadheadMiles)}</td>
-            <td>${fmt(l.totalMiles)}</td>
-            <td>${fmt(l.rate)}</td>
-            <td>${fmt(l.dollarsPerMile)}</td>
-          </tr>
-        `).join("");
-
-            status.textContent = `Loaded ${loads.length} loads.`;
-        } catch (e) {
-            status.textContent = `Error: ${e.message}`;
-        }
-    }
-
-    function startAutoRefresh() {
-        stopAutoRefresh();
-        loadTop20();
-        timer = setInterval(loadTop20, 10000);
-    }
-
-    function stopAutoRefresh() {
-        if (timer) clearInterval(timer);
-        timer = null;
-        document.getElementById("status").textContent = "Auto refresh off.";
-    }
-</script>
-</body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trucking.Time — Smarter Loads</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script type="module" crossorigin src="/assets/index-BozRxx7O.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B7vTETIq.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>

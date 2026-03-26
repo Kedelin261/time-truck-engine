@@ -1,0 +1,9 @@
+# Cloudflare Pages configuration for Trucking.Time frontend
+# Deploy via: npx wrangler pages deploy frontend/dist --project-name=trucking-time
+
+name = "trucking-time"
+compatibility_date = "2024-01-01"
+
+[env.production]
+# Set VITE_API_BASE in Cloudflare Pages dashboard → Settings → Environment variables
+# Example: VITE_API_BASE = "https://your-backend-server.fly.dev"

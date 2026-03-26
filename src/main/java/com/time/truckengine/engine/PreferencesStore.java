@@ -58,11 +58,36 @@ public class PreferencesStore {
     public UserPreferences update(String userId, UserPreferences updated) {
         UserPreferences p = get(userId);
 
+        // Load filters
         p.setHomeState(updated.getHomeState());
+        p.setHomeCity(updated.getHomeCity());
         p.setEquipmentType(updated.getEquipmentType());
         p.setMaxDeadheadMiles(updated.getMaxDeadheadMiles());
         p.setMinTotalMiles(updated.getMinTotalMiles());
         p.setMinDollarsPerMile(updated.getMinDollarsPerMile());
+        if (updated.getPreferredDestinationStates() != null)
+            p.setPreferredDestinationStates(updated.getPreferredDestinationStates());
+        if (updated.getBannedDestinationStates() != null)
+            p.setBannedDestinationStates(updated.getBannedDestinationStates());
+
+        // Notifications
+        p.setPhoneNumber(updated.getPhoneNumber());
+        p.setEmail(updated.getEmail());
+        p.setSmsEnabled(updated.isSmsEnabled());
+        p.setEmailEnabled(updated.isEmailEnabled());
+
+        // Company info
+        p.setCompanyName(updated.getCompanyName());
+        p.setOwnerName(updated.getOwnerName());
+        p.setMcNumber(updated.getMcNumber());
+        p.setDotNumber(updated.getDotNumber());
+        p.setCompanyPhone(updated.getCompanyPhone());
+        p.setCompanyEmail(updated.getCompanyEmail());
+        p.setCompanyWebsite(updated.getCompanyWebsite());
+
+        // Subscription
+        if (updated.getSubscriptionTier() != null)
+            p.setSubscriptionTier(updated.getSubscriptionTier());
 
         saveToDisk();
         return p;

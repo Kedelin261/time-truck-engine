@@ -1,0 +1,15 @@
+# Trucking.Time — Cloudflare Pages + D1 Backend
+# Project: trucking-time
+# Account: b7d0c7ba6b4de011cc51c878e26c70c2
+# Live URL: https://trucking-time.pages.dev
+
+name                  = "trucking-time"
+pages_build_output_dir = "dist"
+compatibility_date    = "2026-03-26"
+
+# ── D1 Database binding ─────────────────────────────────────────────────────
+# All API functions access this as env.DB
+[[d1_databases]]
+binding      = "DB"
+database_name = "trucking-time-db"
+database_id  = "f3ca0b4c-6ede-4226-8bdf-56a973d7bbdd"
