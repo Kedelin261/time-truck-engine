@@ -72,7 +72,42 @@ CREATE TABLE IF NOT EXISTS bookings (
   booked_at          TEXT    DEFAULT (datetime('now'))
 );
 
+-- ── Broker Activity Feed ───────────────────────────────────────────────────
+-- Stores every load movement a broker posts throughout the day.
+-- Rows are keyed by broker_company + activity_date so they auto-reset at midnight.
+-- The engine generates realistic intraday activity; real DAT data would replace
+-- the stub generator once a live DAT token is connected.
+CREATE TABLE IF NOT EXISTS broker_activity (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id          TEXT    NOT NULL,          -- owner of this pipeline view
+  broker_id        TEXT    NOT NULL,          -- FK → brokers.broker_id (or stub key)
+  broker_company   TEXT    DEFAULT '',
+  broker_name      TEXT    DEFAULT '',
+  -- Load movement fields
+  load_ref         TEXT    DEFAULT '',        -- broker's internal reference
+  origin_city      TEXT    DEFAULT '',
+  origin_state     TEXT    DEFAULT '',
+  dest_city        TEXT    DEFAULT '',
+  dest_state       TEXT    DEFAULT '',
+  equipment_type   TEXT    DEFAULT 'DRY_VAN',
+  load_type        TEXT    DEFAULT 'Full',    -- Full / Partial
+  commodity        TEXT    DEFAULT '',
+  total_miles      INTEGER DEFAULT 0,
+  weight_lbs       INTEGER DEFAULT 0,
+  rate             REAL    DEFAULT 0,
+  dollars_per_mile REAL    DEFAULT 0,
+  -- Document / status tracking
+  doc_type         TEXT    DEFAULT 'LOAD_TENDER',  -- LOAD_TENDER | RATE_CON | BOL | POD | INVOICE
+  doc_status       TEXT    DEFAULT 'SENT',         -- SENT | CONFIRMED | IN_TRANSIT | DELIVERED | INVOICED
+  -- Timestamps
+  activity_date    TEXT    NOT NULL,          -- date('now') — used for daily reset
+  sent_at          TEXT    NOT NULL,          -- full ISO timestamp
+  last_updated_at  TEXT    DEFAULT (datetime('now'))
+);
+
 -- ── Indexes ────────────────────────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_trucks_user   ON trucks(user_id);
-CREATE INDEX IF NOT EXISTS idx_brokers_user  ON brokers(user_id);
-CREATE INDEX IF NOT EXISTS idx_bookings_user ON bookings(user_id);
+CREATE INDEX IF NOT EXISTS idx_trucks_user        ON trucks(user_id);
+CREATE INDEX IF NOT EXISTS idx_brokers_user       ON brokers(user_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_user      ON bookings(user_id);
+CREATE INDEX IF NOT EXISTS idx_broker_act_user    ON broker_activity(user_id, activity_date);
+CREATE INDEX IF NOT EXISTS idx_broker_act_broker  ON broker_activity(broker_id, activity_date);

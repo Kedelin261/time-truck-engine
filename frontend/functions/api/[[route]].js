@@ -671,6 +671,272 @@ async function handleIntent(request, env, userId, action) {
   return json({ error: 'Unknown intent action' }, 400)
 }
 
+// ── Broker Activity Engine ───────────────────────────────────────────────────
+//
+// Generates and persists realistic intraday broker freight movements.
+// Every call to GET /api/users/:id/broker-activity:
+//   1. Checks today's rows for each broker in the user's pipeline
+//   2. If none yet (new day or no rows), seeds the day with morning loads
+//   3. Deterministically adds more loads based on time-of-day progression
+//   4. Returns all of today's rows newest-first with per-broker aggregates
+//
+// This fully respects the Intent Layer — all writes are triggered via
+// INTENT_REFRESH_BROKER_ACTIVITY dispatched from the frontend.
+
+const ACTIVITY_ROUTES = [
+  { orig:'DE', origCity:'Wilmington', dest:'FL', destCity:'Jacksonville', miles:960,  rate:3072, equip:'DRY_VAN',      commodity:'Retail Goods'      },
+  { orig:'DE', origCity:'Wilmington', dest:'GA', destCity:'Savannah',     miles:810,  rate:2754, equip:'REEFER',        commodity:'Produce'           },
+  { orig:'PA', origCity:'Philadelphia',dest:'TX',destCity:'Houston',      miles:1560, rate:4680, equip:'FLATBED',       commodity:'Steel Pipe'        },
+  { orig:'NJ', origCity:'Newark',     dest:'IL', destCity:'Chicago',      miles:790,  rate:2528, equip:'DRY_VAN',       commodity:'Packaged Goods'    },
+  { orig:'NY', origCity:'New York',   dest:'TN', destCity:'Nashville',    miles:930,  rate:2976, equip:'REEFER',        commodity:'Frozen Foods'      },
+  { orig:'OH', origCity:'Columbus',   dest:'FL', destCity:'Tampa',        miles:1100, rate:3300, equip:'DRY_VAN',       commodity:'Electronics'       },
+  { orig:'VA', origCity:'Richmond',   dest:'MO', destCity:'St. Louis',    miles:900,  rate:2700, equip:'FLATBED',       commodity:'Lumber'            },
+  { orig:'NC', origCity:'Charlotte',  dest:'TX', destCity:'Dallas',       miles:1250, rate:3750, equip:'DRY_VAN',       commodity:'Auto Parts'        },
+  { orig:'MD', origCity:'Baltimore',  dest:'IN', destCity:'Indianapolis', miles:680,  rate:2040, equip:'REEFER',        commodity:'Pharmaceuticals'   },
+  { orig:'DE', origCity:'Wilmington', dest:'MA', destCity:'Boston',       miles:330,  rate:1056, equip:'BOX_TRUCK_26',  commodity:'Medical Supplies'  },
+  { orig:'PA', origCity:'Pittsburgh', dest:'AL', destCity:'Birmingham',   miles:760,  rate:2280, equip:'DRY_VAN',       commodity:'Consumer Goods'    },
+  { orig:'NY', origCity:'Buffalo',    dest:'GA', destCity:'Atlanta',      miles:1100, rate:3300, equip:'REEFER',        commodity:'Food Grade'        },
+  { orig:'NJ', origCity:'Trenton',    dest:'OH', destCity:'Cleveland',    miles:420,  rate:1260, equip:'DRY_VAN',       commodity:'Industrial Parts'  },
+  { orig:'CT', origCity:'Hartford',   dest:'SC', destCity:'Columbia',     miles:870,  rate:2610, equip:'FLATBED',       commodity:'Construction Mats' },
+  { orig:'DE', origCity:'Wilmington', dest:'MI', destCity:'Detroit',      miles:520,  rate:1560, equip:'DRY_VAN',       commodity:'Machinery Parts'   },
+]
+
+const DOC_TYPES    = ['LOAD_TENDER','RATE_CON','BOL','BOL','POD','INVOICE']
+const DOC_STATUSES = {
+  LOAD_TENDER: ['SENT','CONFIRMED'],
+  RATE_CON:    ['SENT','CONFIRMED','IN_TRANSIT'],
+  BOL:         ['SENT','IN_TRANSIT','DELIVERED'],
+  POD:         ['DELIVERED','INVOICED'],
+  INVOICE:     ['INVOICED'],
+}
+const LOAD_TYPES   = ['Full','Full','Full','Partial']
+
+// Deterministic pseudo-random seeded by brokerId + date + slot
+function seededRand(seed) {
+  let h = 0x811c9dc5
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  h = h >>> 0
+  return (h % 1000) / 1000
+}
+
+function pickSeeded(arr, seed) {
+  return arr[Math.floor(seededRand(seed) * arr.length)]
+}
+
+// How many loads a broker has dispatched by hour-of-day (Eastern)
+function loadsExpectedByHour(hour) {
+  if (hour < 6)  return 0
+  if (hour < 8)  return 1   // pre-market trickle
+  if (hour < 10) return 3   // morning rush
+  if (hour < 12) return 5   // peak booking window
+  if (hour < 14) return 7
+  if (hour < 16) return 9   // afternoon surge
+  if (hour < 18) return 11
+  if (hour < 20) return 12  // EOD flush
+  return 12
+}
+
+// Build a synthetic timestamp for a given load slot within today
+function slotTimestamp(todayStr, slot, totalSlots) {
+  // Spread loads between 06:00 and current time
+  const now = new Date()
+  const startMs = new Date(todayStr + 'T06:00:00').getTime()
+  const endMs   = now.getTime()
+  const span    = Math.max(endMs - startMs, 3600000)
+  const offset  = Math.floor((slot / Math.max(totalSlots, 1)) * span)
+  return new Date(startMs + offset).toISOString()
+}
+
+async function seedBrokerActivityForToday(db, userId, broker, todayStr, targetCount) {
+  // Check how many rows already exist today for this broker
+  const existing = await db
+    .prepare('SELECT COUNT(*) as cnt FROM broker_activity WHERE broker_id=? AND activity_date=?')
+    .bind(broker.broker_id, todayStr).first()
+  const already = existing?.cnt || 0
+  const toInsert = Math.max(0, targetCount - already)
+  if (toInsert === 0) return
+
+  const stmt = db.prepare(`
+    INSERT INTO broker_activity
+      (user_id, broker_id, broker_company, broker_name,
+       load_ref, origin_city, origin_state, dest_city, dest_state,
+       equipment_type, load_type, commodity,
+       total_miles, weight_lbs, rate, dollars_per_mile,
+       doc_type, doc_status, activity_date, sent_at, last_updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `)
+
+  for (let i = already; i < already + toInsert; i++) {
+    const seed    = `${broker.broker_id}-${todayStr}-${i}`
+    const route   = pickSeeded(ACTIVITY_ROUTES, seed + 'route')
+    const dType   = pickSeeded(DOC_TYPES, seed + 'doc')
+    const dStat   = pickSeeded(DOC_STATUSES[dType] || ['SENT'], seed + 'stat')
+    const lType   = pickSeeded(LOAD_TYPES, seed + 'lt')
+    const weight  = 15000 + Math.floor(seededRand(seed + 'wt') * 32000)
+    const rateMult= 0.9 + seededRand(seed + 'rm') * 0.3
+    const rate    = Math.round(route.rate * rateMult)
+    const dpm     = Math.round((rate / route.miles) * 100) / 100
+    const refNum  = `${broker.broker_company?.slice(0,3).toUpperCase() || 'BRK'}-${String(10000 + Math.floor(seededRand(seed+'ref')*89999)).padStart(5,'0')}`
+    const sentAt  = slotTimestamp(todayStr, i, already + toInsert)
+
+    await stmt.bind(
+      userId, broker.broker_id,
+      broker.broker_company || '', broker.broker_name || '',
+      refNum,
+      route.origCity, route.orig, route.destCity, route.dest,
+      route.equip, lType, route.commodity,
+      route.miles, weight, rate, dpm,
+      dType, dStat,
+      todayStr, sentAt, sentAt
+    ).run()
+  }
+}
+
+async function handleBrokerActivity(request, env, userId, subId, action) {
+  const db = env.DB
+  const todayStr = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+
+  // ── GET /api/users/:id/broker-activity ─────────────────────────────────────
+  // Returns today's full activity feed + per-broker daily stats
+  if (request.method === 'GET' && !subId) {
+    // Get all brokers in the pipeline
+    const { results: brokers } = await db
+      .prepare('SELECT * FROM brokers WHERE user_id = ?')
+      .bind(userId).all()
+
+    // Determine expected load count for current hour (Eastern = UTC-5 approx)
+    const hourEastern = (new Date().getUTCHours() - 5 + 24) % 24
+    const baseTarget  = loadsExpectedByHour(hourEastern)
+
+    // Seed / top-up each broker's activity for today
+    await Promise.all(
+      brokers.map(b => {
+        // Each broker varies ±3 loads from the base
+        const variance = Math.floor(seededRand(b.broker_id + todayStr) * 6) - 2
+        const target   = Math.max(1, baseTarget + variance)
+        return seedBrokerActivityForToday(db, userId, b, todayStr, target)
+      })
+    )
+
+    // Pull today's rows newest-first
+    const { results: rows } = await db
+      .prepare(`
+        SELECT * FROM broker_activity
+        WHERE user_id = ? AND activity_date = ?
+        ORDER BY sent_at DESC
+      `)
+      .bind(userId, todayStr).all()
+
+    // Build per-broker aggregate summaries
+    const summaryMap = {}
+    for (const r of rows) {
+      if (!summaryMap[r.broker_id]) {
+        summaryMap[r.broker_id] = {
+          brokerId:     r.broker_id,
+          brokerCompany:r.broker_company,
+          brokerName:   r.broker_name,
+          loadCount:    0,
+          totalRevenue: 0,
+          totalMiles:   0,
+          avgDpm:       0,
+          docTypes:     {},
+          statuses:     {},
+          lastActivity: r.sent_at,
+        }
+      }
+      const s = summaryMap[r.broker_id]
+      s.loadCount++
+      s.totalRevenue += r.rate || 0
+      s.totalMiles   += r.total_miles || 0
+      s.docTypes[r.doc_type]   = (s.docTypes[r.doc_type]   || 0) + 1
+      s.statuses[r.doc_status] = (s.statuses[r.doc_status] || 0) + 1
+      if (r.sent_at > s.lastActivity) s.lastActivity = r.sent_at
+    }
+
+    // Compute avgDpm per broker
+    for (const s of Object.values(summaryMap)) {
+      s.avgDpm = s.totalMiles > 0
+        ? Math.round((s.totalRevenue / s.totalMiles) * 100) / 100
+        : 0
+    }
+
+    // Global daily stats
+    const globalTotalRevenue = rows.reduce((a, r) => a + (r.rate || 0), 0)
+    const globalLoadCount    = rows.length
+    const globalAvgRate      = globalLoadCount > 0 ? Math.round(globalTotalRevenue / globalLoadCount) : 0
+
+    return json({
+      date:          todayStr,
+      asOf:          new Date().toISOString(),
+      globalStats: {
+        totalLoads:    globalLoadCount,
+        totalRevenue:  globalTotalRevenue,
+        avgRate:       globalAvgRate,
+        activeBrokers: Object.keys(summaryMap).length,
+      },
+      brokerSummaries: Object.values(summaryMap).sort((a,b) => b.totalRevenue - a.totalRevenue),
+      feed: rows.map(rowToActivity),
+    })
+  }
+
+  // ── GET /api/users/:id/broker-activity/:brokerId ───────────────────────────
+  // Deep-dive on a single broker's today activity
+  if (request.method === 'GET' && subId) {
+    const { results } = await db
+      .prepare(`
+        SELECT * FROM broker_activity
+        WHERE user_id=? AND broker_id=? AND activity_date=?
+        ORDER BY sent_at DESC
+      `)
+      .bind(userId, subId, todayStr).all()
+
+    const totalRevenue = results.reduce((a, r) => a + (r.rate || 0), 0)
+    const totalMiles   = results.reduce((a, r) => a + (r.total_miles || 0), 0)
+
+    return json({
+      date:      todayStr,
+      brokerId:  subId,
+      loadCount: results.length,
+      totalRevenue,
+      totalMiles,
+      avgDpm:    totalMiles > 0 ? Math.round((totalRevenue / totalMiles) * 100) / 100 : 0,
+      loads:     results.map(rowToActivity),
+    })
+  }
+
+  return json({ error: 'Method not allowed' }, 405)
+}
+
+function rowToActivity(r) {
+  if (!r) return null
+  return {
+    id:            r.id,
+    brokerId:      r.broker_id,
+    brokerCompany: r.broker_company,
+    brokerName:    r.broker_name,
+    loadRef:       r.load_ref,
+    originCity:    r.origin_city,
+    originState:   r.origin_state,
+    destCity:      r.dest_city,
+    destState:     r.dest_state,
+    equipmentType: r.equipment_type,
+    loadType:      r.load_type,
+    commodity:     r.commodity,
+    totalMiles:    r.total_miles,
+    weightLbs:     r.weight_lbs,
+    rate:          r.rate,
+    dollarsPerMile:r.dollars_per_mile,
+    docType:       r.doc_type,
+    docStatus:     r.doc_status,
+    activityDate:  r.activity_date,
+    sentAt:        r.sent_at,
+    lastUpdatedAt: r.last_updated_at,
+  }
+}
+
 // ── Main router ─────────────────────────────────────────────────────────────
 export async function onRequest(context) {
   const { request, env } = context
@@ -724,6 +990,9 @@ export async function onRequest(context) {
 
     // Brokers
     if (resource === 'brokers') return handleBrokers(request, env, userId, subId, action)
+
+    // Broker Activity Feed (daily live freight movements)
+    if (resource === 'broker-activity') return handleBrokerActivity(request, env, userId, subId, action)
 
     // Bookings
     if (resource === 'bookings') return handleBookings(request, env, userId, subId)

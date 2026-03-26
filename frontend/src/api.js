@@ -73,6 +73,14 @@ export const api = {
     .then(v => v || { success: false, message: 'No response' }),
   blastAvailability:  (userId)               => req(`${BASE}/${userId}/brokers/blast-availability`, { method: 'POST' }).then(asArray),
 
+  // ── Broker Activity Feed ──────────────────────────────────────────────────
+  // Returns today's live freight movement feed for all brokers in the pipeline.
+  // Automatically seeds/refreshes intraday — call on mount + interval.
+  getBrokerActivity:       (userId)          =>
+    req(`${BASE}/${userId}/broker-activity`).then(v => v || { feed:[], brokerSummaries:[], globalStats:{} }),
+  getBrokerActivityDetail: (userId,brokerId) =>
+    req(`${BASE}/${userId}/broker-activity/${brokerId}`).then(v => v || { loads:[] }),
+
   // ── Bookings ───────────────────────────────────────────────────────────
   getBookings: (userId)          => req(`${BASE}/${userId}/bookings`).then(asArray),
   addBooking:  (userId, booking) => req(`${BASE}/${userId}/bookings`, {
